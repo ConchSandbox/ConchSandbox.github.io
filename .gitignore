@@ -1,0 +1,9 @@
+# Dependencies
+node_modules/
+
+# Generated site files
+.docusaurus/
+build/
+
+# Operating system files
+.DS_Store
