@@ -1,0 +1,11 @@
+# Dependencies
+/node_modules
+
+# Production build output
+/build
+
+# Docusaurus generated
+.docusaurus
+
+# Misc
+.DS_Store
