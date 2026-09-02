@@ -1,6 +1,5 @@
 ---
 title: Sandbox HTTP API
-sidebar_position: 2
 ---
 
 # Sandbox HTTP API

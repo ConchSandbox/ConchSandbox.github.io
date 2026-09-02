@@ -1,6 +1,5 @@
 ---
 title: 存储管理
-sidebar_position: 5
 ---
 
 # 存储管理

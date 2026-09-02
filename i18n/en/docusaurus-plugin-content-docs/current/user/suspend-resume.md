@@ -1,6 +1,5 @@
 ---
 title: Suspend and Resume
-sidebar_position: 3
 ---
 
 # Suspend and Resume

@@ -1,5 +1,4 @@
 ---
-sidebar_position: 1
 slug: /getting-started/intro
 title: Conch 介绍
 ---

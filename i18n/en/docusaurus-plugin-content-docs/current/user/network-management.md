@@ -1,6 +1,5 @@
 ---
 title: Network Management
-sidebar_position: 6
 ---
 
 # Network Management

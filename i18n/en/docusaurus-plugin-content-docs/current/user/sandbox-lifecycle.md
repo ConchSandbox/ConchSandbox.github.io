@@ -1,6 +1,5 @@
 ---
 title: Create and Delete Sandboxes
-sidebar_position: 1
 ---
 
 # Create and Delete Sandboxes

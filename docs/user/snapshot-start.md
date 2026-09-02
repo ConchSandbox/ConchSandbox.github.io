@@ -1,6 +1,5 @@
 ---
 title: 沙箱快照启动
-sidebar_position: 2
 ---
 
 # 沙箱快照启动
