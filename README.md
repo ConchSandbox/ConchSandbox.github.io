@@ -17,8 +17,6 @@ blog/                  # 中文技术博客
 i18n/en/               # 英文文档、博客和界面翻译
 ```
 
-侧边栏在 `sidebars.ts` 中使用显式列表维护。Front Matter 中的 `sidebar_position` 不会覆盖该顺序；新增页面需要出现在导航中时，应同时更新 `sidebars.ts`。
-
 ## 本地运行
 
 需要 Node.js 18 或更高版本。
@@ -53,7 +51,6 @@ npm run serve -- --port 3005
 ```yaml
 ---
 title: 页面标题
-sidebar_position: 3
 slug: /getting-started/example # 仅在需要稳定 URL 时添加
 ---
 ```
@@ -123,15 +120,12 @@ description: 介绍如何使用 Conch 创建并操作 Sandbox。
 ## 站点配置
 
 - `docusaurus.config.ts`：站点地址、locale、文档与博客插件、搜索、导航栏和页脚。
-- `sidebars.ts`：快速开始、用户手册、使用示例和参考手册的显式顺序。
 - `src/pages/index.tsx`：中英文首页内容与页面结构。
 - `src/pages/index.module.css`：首页样式和响应式布局。
 - `src/css/custom.css`：全局主题样式及导航栏图标布局。
 - `static/img/`：Logo、博客插图等静态资源。
 
 当前顶部导航包含文档四个分组与博客入口；受限宽度下保留语言、GitHub、主题和搜索四个图标。页脚提供主要文档、Conch 社区与博客链接。
-
-普通文档任务不应顺带修改首页、导航栏、页脚或全局视觉设计。完整 Agent 工作边界见 `AGENTS.md`。
 
 ## 验证与提交
 

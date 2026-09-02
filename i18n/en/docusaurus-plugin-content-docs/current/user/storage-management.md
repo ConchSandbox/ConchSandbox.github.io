@@ -1,6 +1,5 @@
 ---
 title: Storage Management
-sidebar_position: 5
 ---
 
 # Storage Management

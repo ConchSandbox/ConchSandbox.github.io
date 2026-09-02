@@ -1,5 +1,4 @@
 ---
-sidebar_position: 3
 title: 源码构建与启动
 ---
 

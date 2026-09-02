@@ -1,6 +1,5 @@
 ---
 title: Snapshot Startup
-sidebar_position: 2
 ---
 
 # Snapshot Startup

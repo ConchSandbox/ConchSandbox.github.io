@@ -1,5 +1,4 @@
 ---
-sidebar_position: 6
 title: RPM 安装与服务管理
 ---
 

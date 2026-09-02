@@ -1,6 +1,5 @@
 ---
 title: Deploy an all-in-one sandbox with Conch
-sidebar_position: 2
 ---
 
 # Deploy an all-in-one sandbox with Conch

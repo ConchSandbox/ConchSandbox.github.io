@@ -1,6 +1,5 @@
 ---
 title: 网络管理
-sidebar_position: 6
 ---
 
 # 网络管理

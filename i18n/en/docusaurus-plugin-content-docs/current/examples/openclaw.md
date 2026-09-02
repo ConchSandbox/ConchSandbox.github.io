@@ -1,6 +1,5 @@
 ---
 title: Deploy OpenClaw with Conch
-sidebar_position: 1
 ---
 
 # Deploy OpenClaw with Conch
