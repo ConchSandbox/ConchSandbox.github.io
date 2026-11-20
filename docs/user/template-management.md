@@ -13,6 +13,8 @@ Template 是 Conch 创建 Sandbox 的启动对象。每个 Template 有一个可
 
 Template 的 Boot Index 包含 EROFS rootfs、guest kernel 和 initrd；由 checkpoint 产生的 resume Template 还包含 VMM 内存状态。
 
+本页内容与 Conch 源码仓的 `dev-openEuler-24.03-LTS_SP4` 分支对齐。
+
 ## 从 OCI Image 创建 Template
 
 ```bash
@@ -104,6 +106,52 @@ sudo ./bin/conch template pull \
 
 拉取成功后，本地 Template Name 使用 registry 返回的规范化来源名称，命令同时输出 Template ID。`template pull` 会校验 Boot Index 结构；普通 OCI Image 应使用 `conch image pull`。
 
+## 离线搬运 Template
+
+没有 registry 时，用 `save` / `load` 离线搬运 Template。这和 `docker save` / `docker load` 一样，归档里是完整 Boot Index，不是容器文件系统的扁平导出：
+
+```bash
+sudo ./bin/conch template save \
+  --config config/config.local.yaml \
+  -o openeuler.tar localhost/conch/openeuler:latest
+
+sudo ./bin/conch template load \
+  --config config/config.local.yaml \
+  -i openeuler.tar
+```
+
+### save
+
+命令形式为 `conch template save [选项] <template-name> [<template-name>...]`，一次导出一个或多个 Template，归档包含 Boot Index 及启动所需的全部 blob：
+
+```bash
+sudo ./bin/conch template save \
+  --config config/config.local.yaml \
+  -o bundle.tar \
+  localhost/conch/openeuler:latest \
+  localhost/conch/python:latest
+```
+
+| 选项 | 说明 |
+| --- | --- |
+| `-o, --output` | 必填。归档输出文件，路径可以是相对路径。 |
+| `--timeout` | 限制本次归档传输时长，例如 `30m`；缺省不限时。 |
+| `--config` | 配置文件路径，默认自动探测常见路径。 |
+
+`save` 先把归档写到同一目录的临时文件，成功后再替换 `-o` 指向的文件；失败时原来的文件还在，也不会创建上级目录。
+
+### load
+
+命令形式为 `conch template load [选项]`，`-i` 必填，不接收位置参数：
+
+| 选项 | 说明 |
+| --- | --- |
+| `-i, --input` | 必填。要导入的归档文件。 |
+| `--timeout` | 限制本次归档传输时长，例如 `30m`；缺省不限时。 |
+| `--config` | 配置文件路径，默认自动探测常见路径。 |
+
+`load` 接受 gzip 或 zstd 压缩归档，按归档中的 Name 创建或更新本地 Template，并为每个条目打印 `Loaded image: <name>`。已有的同名 Template 会指向归档中的 Template ID。`load` 不会 unpack，也不按本机架构拒绝归档。
+
 ## 解包 Template
 
 创建 Sandbox 时会按需准备 Boot Index 组件。需要提前把指定 Template 的全部组件解包到本地 snapshotter 时，执行：
@@ -140,7 +188,7 @@ sudo ./bin/conch image rm docker.io/library/python:3.12
 
 ## 请求超时
 
-所有 CLI 到 conchd 的请求默认超时为 2 分钟。拉取、转换或发布大镜像时，可以为当前命令设置正的 Go duration：
+除 `template save` 和 `template load` 外，CLI 到 conchd 的请求默认超时为 2 分钟。拉取、转换或发布大镜像时，可以为当前命令设置正的 Go duration：
 
 ```bash
 CONCH_API_TIMEOUT=30m sudo --preserve-env=CONCH_API_TIMEOUT \
@@ -152,7 +200,7 @@ CONCH_API_TIMEOUT=30m sudo --preserve-env=CONCH_API_TIMEOUT \
   --initrd /var/lib/conch/conch.initrd
 ```
 
-`template push --timeout 30m` 和 `image push --timeout 30m` 只覆盖本次 push 请求，并优先于 `CONCH_API_TIMEOUT`。
+`template push --timeout 30m` 和 `image push --timeout 30m` 只覆盖本次 push 请求，并优先于 `CONCH_API_TIMEOUT`。`template save` 和 `template load` 默认不限时；需要上限时使用 `--timeout`，同样优先于 `CONCH_API_TIMEOUT`。
 
 ## 相关文档
 

@@ -13,6 +13,8 @@ curl --unix-socket "$CONCH_SOCKET" http://localhost/health
 
 当前控制面 API 不提供 TCP listener，也不在 HTTP 层实现鉴权。应使用文件权限限制 Unix socket 的访问者。
 
+本页接口与 Conch 源码仓的 `dev-openEuler-24.03-LTS_SP4` 分支对齐。
+
 ## 接口概览
 
 | 方法 | 路径 | 说明 |
@@ -90,6 +92,8 @@ Template 和资源字段为零值或空字符串时，conchd 使用 `sandbox.def
 `env` 的键不能为空，不能包含 `=` 或 NUL；值不能包含 NUL。Sandbox ID、Agent token、网络配置和环境变量共同组成 guest 初始化消息，UTF-8 编码后最大 16 KiB。
 
 网络策略字段为 `allowOut`、`denyOut`、`allowIn`、`denyIn` 和 `allow_internet_access`。四个列表只接受 IPv4 地址或 CIDR，合计最多 1024 项。Volume 字段见 [Storage 参考](/docs/reference/storage)。
+
+创建请求还会通过主机内存准入：已配置内存的创建中、运行中和已暂停 Sandbox，加上应用默认值后的 `ram_mb`，合计不得超过 `sandbox.memory_limit_mb` 与 `sandbox.memory_overcommit_ratio` 的乘积。超出时创建被拒绝并返回 `429`。`memory_limit_mb` 默认 65536，最小 128；`memory_overcommit_ratio` 默认 1.0，取值范围 1.0～5.0。
 
 ### 成功响应
 
@@ -281,11 +285,11 @@ curl --unix-socket "$CONCH_SOCKET" \
 
 | HTTP 状态 | 含义 |
 | --- | --- |
-| `400` | 请求字段或 JSON 无效。 |
+| `400` | 请求字段或 JSON 无效，或单 Sandbox 请求超出固定上限（64 vCPU、262144 MiB 内存）。 |
 | `404` | Sandbox 或 Template 不存在。 |
 | `409` | ID 冲突、状态不满足操作前提。 |
 | `413` | 请求体或初始化载荷过大。 |
-| `429` | 超出固定资源上限。 |
+| `429` | 主机资源耗尽：内存准入超限、网络 Slot 池耗尽或 Sandbox CID 分配失败。 |
 | `503` | 控制面尚未就绪。 |
 | `504` | 请求超时。 |
 

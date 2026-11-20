@@ -13,6 +13,8 @@ curl --unix-socket "$CONCH_SOCKET" http://localhost/health
 
 The current control-plane API does not expose a TCP listener or implement authentication at the HTTP layer. Restrict access to the Unix socket with file permissions.
 
+The endpoints on this page align with the `dev-openEuler-24.03-LTS_SP4` branch of the Conch source repository.
+
 ## Endpoint overview
 
 | Method | Path | Description |
@@ -90,6 +92,8 @@ Defaults are applied independently to `vcpu_num` and `vcpu_max`. If you explicit
 An `env` key cannot be empty or contain `=` or NUL; its value cannot contain NUL. The Sandbox ID, Agent token, network configuration, and environment variables form the guest initialization message, which is limited to 16 KiB after UTF-8 encoding.
 
 Network policy fields are `allowOut`, `denyOut`, `allowIn`, `denyIn`, and `allow_internet_access`. The four lists accept only IPv4 addresses or CIDRs, with no more than 1024 entries in total. See the [Storage Reference](/docs/reference/storage) for Volume fields.
+
+Each create request also passes a host memory admission check: the configured memory of creating, running, and suspended Sandboxes, plus the requested `ram_mb` after defaults are applied, must not exceed `sandbox.memory_limit_mb` multiplied by `sandbox.memory_overcommit_ratio`. When exceeded, creation is rejected with `429`. `memory_limit_mb` defaults to 65536 with a minimum of 128; `memory_overcommit_ratio` defaults to 1.0 and accepts values from 1.0 to 5.0.
 
 ### Success response
 
@@ -281,11 +285,11 @@ Use `code` for automation; `error` is the public user-facing message. Common HTT
 
 | HTTP status | Meaning |
 | --- | --- |
-| `400` | Invalid request fields or JSON. |
+| `400` | Invalid request fields or JSON, or a per-Sandbox request exceeds the fixed limits (64 vCPUs, 262144 MiB of memory). |
 | `404` | Sandbox or Template not found. |
 | `409` | ID conflict or state does not satisfy an operation precondition. |
 | `413` | Request body or initialization payload is too large. |
-| `429` | A fixed resource limit was exceeded. |
+| `429` | Host resources exhausted: memory admission exceeded, network slot pool exhausted, or Sandbox CID allocation failed. |
 | `503` | The control plane is not ready. |
 | `504` | Request timed out. |
 

@@ -13,6 +13,8 @@ A Template is the boot object that Conch uses to create a Sandbox. Each Template
 
 A Template Boot Index contains an EROFS rootfs, guest kernel, and initrd. A resume Template created by a checkpoint also contains VMM memory state.
 
+This page aligns with the `dev-openEuler-24.03-LTS_SP4` branch of the Conch source repository.
+
 ## Create a Template from an OCI Image
 
 ```bash
@@ -104,6 +106,52 @@ sudo ./bin/conch template pull \
 
 After a successful pull, the local Template Name uses the normalized source name returned by the registry, and the command also prints the Template ID. `template pull` validates the Boot Index structure. Use `conch image pull` for a regular OCI Image.
 
+## Move Templates offline
+
+Without a registry, move Templates offline with `save` / `load`. As with `docker save` / `docker load`, the archive contains the complete Boot Index, not a flat export of the container filesystem:
+
+```bash
+sudo ./bin/conch template save \
+  --config config/config.local.yaml \
+  -o openeuler.tar localhost/conch/openeuler:latest
+
+sudo ./bin/conch template load \
+  --config config/config.local.yaml \
+  -i openeuler.tar
+```
+
+### save
+
+The command takes the form `conch template save [options] <template-name> [<template-name>...]` and exports one or more Templates at a time. The archive contains the Boot Index and every blob needed to boot it:
+
+```bash
+sudo ./bin/conch template save \
+  --config config/config.local.yaml \
+  -o bundle.tar \
+  localhost/conch/openeuler:latest \
+  localhost/conch/python:latest
+```
+
+| Option | Description |
+| --- | --- |
+| `-o, --output` | Required. The archive file to write; the path may be relative. |
+| `--timeout` | Caps this archive transfer, for example `30m`; unset means no limit. |
+| `--config` | Config file path; common paths are auto-detected by default. |
+
+`save` writes the archive to a temporary file in the same directory first and only replaces the file named by `-o` after success; on failure the original file is kept, and parent directories are not created.
+
+### load
+
+The command takes the form `conch template load [options]`; `-i` is required and no positional arguments are accepted:
+
+| Option | Description |
+| --- | --- |
+| `-i, --input` | Required. The archive file to load. |
+| `--timeout` | Caps this archive transfer, for example `30m`; unset means no limit. |
+| `--config` | Config file path; common paths are auto-detected by default. |
+
+`load` accepts gzip- or zstd-compressed archives, creates or updates local Templates by the names stored in the archive, and prints `Loaded image: <name>` for each entry. An existing Template with the same name is pointed at the archived Template ID. `load` does not unpack and does not reject archives by host architecture.
+
 ## Unpack a Template
 
 Sandbox creation prepares Boot Index components on demand. To unpack all components of a Template into the local snapshotter in advance, run:
@@ -140,7 +188,7 @@ By default, `image ls` hides Templates and the internal records used by Boot Ind
 
 ## Request timeouts
 
-Every CLI request to conchd has a default timeout of 2 minutes. For a large image pull, conversion, or publication, set a positive Go duration for the current command:
+Except for `template save` and `template load`, CLI requests to conchd have a default timeout of 2 minutes. For a large image pull, conversion, or publication, set a positive Go duration for the current command:
 
 ```bash
 CONCH_API_TIMEOUT=30m sudo --preserve-env=CONCH_API_TIMEOUT \
@@ -152,7 +200,7 @@ CONCH_API_TIMEOUT=30m sudo --preserve-env=CONCH_API_TIMEOUT \
   --initrd /var/lib/conch/conch.initrd
 ```
 
-`template push --timeout 30m` and `image push --timeout 30m` override only that push request and take precedence over `CONCH_API_TIMEOUT`.
+`template push --timeout 30m` and `image push --timeout 30m` override only that push request and take precedence over `CONCH_API_TIMEOUT`. `template save` and `template load` have no default time limit; use `--timeout` when a cap is needed, which also takes precedence over `CONCH_API_TIMEOUT`.
 
 ## Related documentation
 

@@ -6,6 +6,8 @@ title: Template
 
 The Template module is a named catalog of bootable OCI Boot Indexes. Its implementation is in `internal/template`, and its containerd adapter is in `internal/adapters/containerd/template`.
 
+This page aligns with the `dev-openEuler-24.03-LTS_SP4` branch of the Conch source repository.
+
 ## Data model
 
 ```go
@@ -146,5 +148,104 @@ The control plane converts the internal `Entry` to this JSON structure:
   "created_at": 1788249600000000000
 }
 ```
+
+## HTTP API
+
+Template management endpoints share the same Unix socket, error response format, and JSON request limits as the [Sandbox HTTP API](/docs/reference/sandbox). Except for `create`, which uses multipart, every endpoint accepts `POST` with a JSON body:
+
+| Path | Description |
+| --- | --- |
+| `/api/template/create` | Create a Template from an OCI Image (multipart). |
+| `/api/template/pull` | Pull a Boot Index Template from a registry. |
+| `/api/template/push` | Publish a Template to a registry. |
+| `/api/template/save` | Export one or more Templates as an offline tar archive. |
+| `/api/template/load` | Import an offline tar archive. |
+| `/api/template/unpack` | Unpack all components of a Template in advance. |
+| `/api/template/list` | List Templates. |
+| `/api/template/inspect` | Inspect a single Template. |
+| `/api/template/remove` | Delete a Template record. |
+
+### create
+
+`POST /api/template/create` uses `multipart/form-data` with one JSON form field and two file fields:
+
+| Part | Type | Description |
+| --- | --- | --- |
+| `metadata` | JSON form field | `name` and `source` are required; `plain_http`, `username`, `password`, and `labels` are optional. |
+| `kernel` | file | Guest kernel file, at most 64 MiB. |
+| `initrd` | file | Initrd file, at most 64 MiB. |
+
+The total request body is limited to 129 MiB. A successful response is:
+
+```json
+{
+  "status": "ok",
+  "template_name": "localhost/conch/python:latest",
+  "template_id": "sha256:0123456789abcdef..."
+}
+```
+
+### pull
+
+```json
+{
+  "reference": "registry.example.com/conch/python:latest",
+  "plain_http": false,
+  "username": "",
+  "password": "",
+  "labels": {}
+}
+```
+
+`reference` is required; the rest are optional. A successful response returns the same `status`, `template_name`, and `template_id` as `create`. After a pull, the local Template Name uses the normalized source name returned by the registry. `pull` validates the Boot Index structure; a regular OCI Image does not go through this endpoint.
+
+### push
+
+```json
+{
+  "name": "localhost/conch/python:latest",
+  "remote_reference": "registry.example.com/conch/python:latest",
+  "plain_http": false,
+  "username": "",
+  "password": ""
+}
+```
+
+`name` and `remote_reference` are required; the rest are optional. Success returns `{"status":"ok"}`.
+
+### save
+
+```json
+{
+  "names": ["localhost/conch/openeuler:latest"]
+}
+```
+
+`names` must contain at least one non-empty, non-duplicate Template Name. On success the response body is an `application/x-tar` archive stream containing the complete Boot Index closure of each Template. A failure before the archive starts returns a regular JSON error; a failure after output has started aborts the connection so the caller does not keep a truncated archive.
+
+### load
+
+The request body is the tar archive produced by `save`; gzip- and zstd-compressed archives are also accepted. A successful response is:
+
+```json
+{
+  "items": [
+    {
+      "template_name": "localhost/conch/openeuler:latest",
+      "template_id": "sha256:0123456789abcdef..."
+    }
+  ]
+}
+```
+
+`load` creates or updates local Templates by the names stored in the archive; an existing Template with the same name is pointed at the archived Template ID. `load` does not unpack and does not reject archives by host architecture.
+
+### unpack, list, inspect, and remove
+
+`unpack`, `inspect`, and `remove` take `{"name": "<Template Name>"}` and accept only a Template Name. `list` takes `{"origin": "...", "boot_mode": "..."}`; both filter fields are optional and use the values from the data model, and the response is `{"items": [TemplateRecord]}`. `inspect` returns a single TemplateRecord directly; `unpack` and `remove` return `{"status":"ok"}`. `remove` is idempotent: a missing name is also treated as success.
+
+## Offline archive
+
+`template save` exports the Boot Index closure as an OCI image layout tar archive. Template name, origin, lineage, and labels are annotations on the layout index, not part of the Boot Index blob, so the Template ID is unchanged. `template load` imports that archive and creates or updates the named records. Existing pull, push, create, and Sandbox APIs are unchanged by the offline archive.
 
 For CLI operations and Template Name update semantics, see [Template Management](/docs/user/template-management).
